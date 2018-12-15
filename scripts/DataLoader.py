@@ -94,6 +94,6 @@ class DataLoader():
         self.df.drop(['Image'], axis=1)
 
 
-dl = DataLoader("../data/training.csv", initialize_new=True)
+#dl = DataLoader("../data/training.csv", initialize_new=True)
 
 test = 0

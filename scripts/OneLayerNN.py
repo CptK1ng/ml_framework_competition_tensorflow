@@ -7,18 +7,20 @@ import numpy as np
 class OneLayerNeuralNet():
 
     def __init__(self, path_to_data, hl_size):
-        self.data_loader = DataLoader(path_to_data="../data/training.csv")
+        self.data_loader = DataLoader(path_to_data=path_to_data)
         self.hl_size=hl_size
+        # 96px x 96px = 9216 size for input layer
+        self.x = tf.placeholder(tf.float32, [None, 9216])
+        self.y = tf.placeholder(tf.float32, [None,30])
+        self.train(self.x,50,100)
 
-    # 96px x 96px = 9216 size for input layer
-    x = tf.placeholder(tf.float32, [None, 9216])
-    y = tf.placeholder(tf.float32, [30])
 
-    def one_layer_network_model(self):
+
+    def one_layer_network_model(self,data):
         fully_connected_layer = {'weights': tf.Variable(tf.random_normal([9216, self.hl_size])),
                                  'biases': tf.Variable(tf.random_normal([self.hl_size]))}
 
-        l1 = tf.add(tf.matmul(self.data, fully_connected_layer['weights']), fully_connected_layer['biases'])
+        l1 = tf.add(tf.matmul(data, fully_connected_layer['weights']), fully_connected_layer['biases'])
         l1 = tf.nn.relu(l1)
 
         # Output are 30 Keypount,(15 x and y coordinates for the facial keypoints
@@ -29,8 +31,8 @@ class OneLayerNeuralNet():
         return output
 
     def train(self,x, epochs, batch_size):
-        prediction = self.one_layer_network_model(x)
-        cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(prediction, y))
+        prediction = self.one_layer_network_model(self.x)
+        cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=prediction, labels=self.y ))
         optimizer = tf.train.AdamOptimizer(learning_rate=0.001).minimize(cost)
 
         hm_epochs = epochs
@@ -38,16 +40,17 @@ class OneLayerNeuralNet():
             sess.run(tf.initialize_all_variables())
 
             x_data = self.data_loader.images
+            x_data = [np.ravel(x) for x in x_data]
             y_data = self.data_loader.keypoints
             for epoch in range(hm_epochs):
                 epoch_loss = 0
-                total_batches = int(len(self.data_loader.images)) / batch_size
+                total_batches = int(len(self.data_loader.images) / batch_size)
                 x = np.array_split(x_data, total_batches)
                 y = np.array_split(y_data, total_batches)
 
                 for i in range(total_batches):
-                    batch_x, batch_y = x[i], y[i]
-                    _, c = sess.run([optimizer, cost], feed_dict={x: batch_x, y: batch_y})
+                    batch_x, batch_y = np.array(x[i]), np.array(y[i])
+                    _, c = sess.run([optimizer, cost], feed_dict={self.x: batch_x, self.y: batch_y})
                     epoch_loss += c
 
                 print('Epoch', epoch, 'completed out of', hm_epochs, 'loss:', epoch_loss)
@@ -56,3 +59,7 @@ class OneLayerNeuralNet():
 
             accuracy = tf.reduce_mean(tf.cast(correct, 'float'))
             print('Accuracy:', accuracy.eval({x: self.data_loader.images, y: self.data_loader.keypoints}))
+
+
+
+OneLayerNeuralNet(path_to_data="../data/training.csv", hl_size=500)
