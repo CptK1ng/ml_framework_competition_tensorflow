@@ -26,6 +26,7 @@ class DataLoader():
         self.df = self.load_data_to_df(path_to_data)
 
         self.images = list()
+        self.keypoints = list()
         if initialize_new:
             if initialize_as_RGB:
                 self.extract_images_RGB()
@@ -36,15 +37,17 @@ class DataLoader():
             if initialize_as_RGB:
                 try:
                     self.images = np.load('../data/images_RGB.npy')
+                    self.keypoints = np.load('../data/keypoints.npy')
                 except FileNotFoundError:
                     self.extract_images_RGB()
-                    self.images = np.load('../data/images_RGB.npy')
+
             else:
                 try:
                     self.images = np.load('../data/images_grayscale.npy')
+                    self.keypoints = np.load('../data/keypoints.npy')
+
                 except FileNotFoundError:
                     self.extract_images_grayscale()
-                    self.images = np.load('../data/images_grayscale.npy')
 
         self.df = self.df.drop(['Image'], axis=1)
 
@@ -64,11 +67,14 @@ class DataLoader():
                 for j in range(img.size[1]):
                     pixels[i, j] = (img_as_str[i + j * 96], img_as_str[i + j * 96],
                                     img_as_str[i + j * 96])  # set the colour accordingly
-
             self.images.append(np.array(img))
+
+            # Create a list containing the the 30 keypoints from a row
+            self.keypoints.append(np.asarray([row[x] for x in range(30)]))
 
         self.images = np.array(self.images)
         np.save('../data/images_RGB.npy', self.images)
+        np.save('../data/keypoints.npy', self.keypoints)
         self.df.drop(['Image'], axis=1)
 
     def extract_images_grayscale(self):
@@ -78,14 +84,16 @@ class DataLoader():
             for i in range(img.shape[0]):  # for every pixel:
                 for j in range(img.shape[1]):
                     img[i][j] = img_as_str[i + j * 96]
-
             self.images.append(np.array(img))
+            # Create a list containing the the 30 keypoints from a row
+            self.keypoints.append(np.asarray([row[x] for x in range(30)]))
 
         self.images = np.array(self.images)
         np.save('../data/images_grayscale.npy', self.images)
+        np.save('../data/keypoints.npy', self.keypoints)
         self.df.drop(['Image'], axis=1)
 
 
-dl = DataLoader("../data/training.csv")
+dl = DataLoader("../data/training.csv", initialize_new=True)
 
 test = 0
