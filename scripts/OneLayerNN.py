@@ -28,26 +28,31 @@ class OneLayerNeuralNet():
         output = tf.matmul(l1, output_layer['weights']) + output_layer['biases']
         return output
 
-    def train(self,x, epochs):
+    def train(self,x, epochs, batch_size):
         prediction = self.one_layer_network_model(x)
         cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(prediction, y))
-        optimizer = tf.train.AdamOptimizer().minimize(cost)
+        optimizer = tf.train.AdamOptimizer(learning_rate=0.001).minimize(cost)
 
         hm_epochs = epochs
         with tf.Session() as sess:
             sess.run(tf.initialize_all_variables())
 
+            x_data = self.data_loader.images
+            y_data = self.data_loader.keypoints
             for epoch in range(hm_epochs):
                 epoch_loss = 0
-                x = np.split()
-                for _ in range(int(mnist.train.num_examples / batch_size)):
-                    epoch_x, epoch_y = mnist.train.next_batch(batch_size)
-                    _, c = sess.run([optimizer, cost], feed_dict={x: epoch_x, y: epoch_y})
+                total_batches = int(len(self.data_loader.images)) / batch_size
+                x = np.array_split(x_data, total_batches)
+                y = np.array_split(y_data, total_batches)
+
+                for i in range(total_batches):
+                    batch_x, batch_y = x[i], y[i]
+                    _, c = sess.run([optimizer, cost], feed_dict={x: batch_x, y: batch_y})
                     epoch_loss += c
 
                 print('Epoch', epoch, 'completed out of', hm_epochs, 'loss:', epoch_loss)
-
+            #TODO correct muss angepasst werden. Argmax ist glaub ich nicht nötig
             correct = tf.equal(tf.argmax(prediction, 1), tf.argmax(y, 1))
 
             accuracy = tf.reduce_mean(tf.cast(correct, 'float'))
-            print('Accuracy:', accuracy.eval({x: mnist.test.images, y: mnist.test.labels}))
+            print('Accuracy:', accuracy.eval({x: self.data_loader.images, y: self.data_loader.keypoints}))
