@@ -5,27 +5,6 @@ from PIL import Image
 import time
 from tempfile import TemporaryFile
 
-
-class Sample():
-    def __init__(self, series):
-        self.left_eye_center = (series.left_eye_center_x, series.left_eye_center_y)
-        self.right_eye_center = (series.right_eye_center_x, series.right_eye_center_y)
-        self.left_eye_inner_corner = (series.left_eye_inner_corner_x, series.left_eye_inner_corner_y)
-        self.left_eye_outer_corner = (series.left_eye_outer_corner_x, series.left_eye_outer_corner_y)
-        self.right_eye_inner_corner = (series.right_eye_inner_corner_x, series.right_eye_inner_corner_y)
-        self.right_eye_outer_corner = (series.right_eye_outer_corner_x, series.right_eye_outer_corner_y)
-        self.left_eyebrow_inner_end = (series.left_eyebrow_inner_end_x, series.left_eyebrow_inner_end_y)
-        self.left_eyebrow_outer_end = (series.left_eyebrow_outer_end_x, series.left_eyebrow_outer_end_y)
-        self.right_eyebrow_inner_end = (series.right_eyebrow_inner_end_x, series.right_eyebrow_inner_end_y)
-        self.right_eyebrow_outer_end = (series.right_eyebrow_outer_end_x, series.right_eyebrow_outer_end_x)
-        self.nose_tip = (series.nose_tip_x, series.nose_tip_y)
-        self.mouth_left_corner = (series.mouth_left_corner_x, series.mouth_left_corner_y)
-        self.mouth_right_corner = (series.mouth_right_corner_x, series.mouth_right_corner_y)
-        self.mouth_center_top_lip = (series.mouth_center_top_lip_x, series.mouth_center_top_lip_y)
-        self.mouth_center_bottom_lip = (series.mouth_center_bottom_lip_x, series.mouth_center_bottom_lip_y)
-        print (self.left_eye_center)
-
-
 """
 Data files
 
@@ -42,17 +21,32 @@ Data files
 
 class DataLoader():
 
-    def __init__(self, path_to_data, initialize_new=False):
+    def __init__(self, path_to_data, initialize_new=False, initialize_as_RGB=False):
         self.data = None
         self.df = self.load_data_to_df(path_to_data)
 
-        self.images = None
+        self.images = list()
         if initialize_new:
-            self.extract_images()
+            if initialize_as_RGB:
+                self.extract_images_RGB()
+            else:
+                self.extract_images_grayscale()
+
         else:
-            self.images = np.load('images.npy')
+            if initialize_as_RGB:
+                try:
+                    self.images = np.load('../data/images_RGB.npy')
+                except FileNotFoundError:
+                    self.extract_images_RGB()
+                    self.images = np.load('../data/images_RGB.npy')
+            else:
+                try:
+                    self.images = np.load('../data/images_grayscale.npy')
+                except FileNotFoundError:
+                    self.extract_images_grayscale()
+                    self.images = np.load('../data/images_grayscale.npy')
+
         self.df = self.df.drop(['Image'], axis=1)
-        self.first_sample = Sample(self.df.iloc[1])
 
     def load_data_to_np(self, path, delim=",", starting_line=0):
         self.data = np.loadtxt(path, delimiter=delim, skiprows=starting_line)
@@ -60,7 +54,7 @@ class DataLoader():
     def load_data_to_df(self, path):
         return pd.read_csv(path, header=0)
 
-    def extract_images(self):
+    def extract_images_RGB(self):
         for index, row in self.df.iterrows():
             img = Image.new('RGB', (96, 96), "black")
             pixels = img.load()  # create the pixel map
@@ -74,9 +68,22 @@ class DataLoader():
             self.images.append(np.array(img))
 
         self.images = np.array(self.images)
-        np.save('images.npy', self.images)
+        np.save('../data/images_RGB.npy', self.images)
         self.df.drop(['Image'], axis=1)
-        test = 0
+
+    def extract_images_grayscale(self):
+        for index, row in self.df.iterrows():
+            img = np.zeros((96, 96))
+            img_as_str = [int(i) for i in row.Image.split(' ')]
+            for i in range(img.shape[0]):  # for every pixel:
+                for j in range(img.shape[1]):
+                    img[i][j] = img_as_str[i + j * 96]
+
+            self.images.append(np.array(img))
+
+        self.images = np.array(self.images)
+        np.save('../data/images_grayscale.npy', self.images)
+        self.df.drop(['Image'], axis=1)
 
 
 dl = DataLoader("../data/training.csv")
