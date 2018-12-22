@@ -21,9 +21,11 @@ Data files
 
 class DataLoader():
 
-    def __init__(self, path_to_data, initialize_new=False, initialize_as_RGB=False):
+    def __init__(self, path_to_data, initialize_new=False, initialize_as_RGB=False, drop_na = True):
         self.data = None
         self.df = self.load_data_to_df(path_to_data)
+        if drop_na:
+            self.df  = self.df.dropna()
 
         self.images = list()
         self.keypoints = list()
@@ -94,6 +96,7 @@ class DataLoader():
         self.df.drop(['Image'], axis=1)
 
 
-#dl = DataLoader("../data/training.csv", initialize_new=True)
+dl = DataLoader("../data/training.csv", initialize_new=False)
 
+print("Successfully loaded {} images with keypoints".format(len(dl.images)))
 test = 0
