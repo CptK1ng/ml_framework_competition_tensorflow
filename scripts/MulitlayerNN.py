@@ -50,27 +50,27 @@ class MultiLayerNeuralNet():
         # Flatten the array to make it processable for fc layers
         flattened = tf.layers.Flatten()(conv5)  #
         fcl1 = self.fc_layer(flattened, int(flattened.shape[1]), 500, "fcl1")
-        fcl2 = self.fc_layer(fcl1, 500, 500, "fcl2")
-        fcl3 = self.fc_layer(fcl2, 500, 500, "fcl3")
-        fcl4 = self.fc_layer(fcl3, 500, 500, "fcl4")
+        fcl2 = self.fc_layer(fcl1, 500, 500, "fcl1")
+        fcl3 = self.fc_layer(fcl2, 500, 500, "fcl1")
+        fcl4 = self.fc_layer(fcl3, 500, 500, "fcl1")
         output = self.fc_layer(fcl4, 500, 30, "output")
 
         return output
 
-    def train(self, learning_rate, epochs, batch_size):
+    def train(self, learning_rate, epochs, batch_size, save_model = False):
         prediction = self.le_net_model(self.x_image)
 
         with tf.name_scope("loss"):
-            loss = tf.reduce_mean(tf.losses.mean_squared_error(labels=self.y, predictions=test_pred))
+            loss = tf.reduce_mean(tf.losses.mean_squared_error(labels=self.y, predictions=prediction))
             tf.summary.scalar("mse", loss)
 
         with tf.name_scope("train"):
             optimizer = tf.train.AdamOptimizer(learning_rate=0.01).minimize(loss)
 
-        with tf.name_scope("test"):
-            testopt = tf.train.AdamOptimizer(learning_rate=0.01).minimize(test_loss)
 
         summ = tf.summary.merge_all()
+        best_epoch_loss = 999999999999
+        saver = tf.train.Saver()
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
             writer = tf.summary.FileWriter(
@@ -100,10 +100,13 @@ class MultiLayerNeuralNet():
                     s = sess.run(summ, feed_dict={self.x: batch_x, self.y: batch_y})
                     writer.add_summary(s, epoch)
 
-
+                if epoch_loss < best_epoch_loss and save_model:
+                    save_path = saver.save(sess, "../tmp/savepoints{}/model.ckpt".format(datetime.datetime.now().time()))
+                    best_epoch_loss = epoch_loss
+                    print("Model saved in path: %s" % save_path)
 
                 print('Epoch', epoch, 'completed out of', epochs, 'loss:', epoch_loss)
 
 
 ml_network = MultiLayerNeuralNet(path_to_data="../data/training.csv")
-ml_network.train(1e-2, 750, 50)
+ml_network.train(1e-2, 100, 50)
