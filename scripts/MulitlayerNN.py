@@ -1,6 +1,9 @@
 import tensorflow as tf
+
+from tensorflow.python import debug as tf_debug
 from scripts.DataLoader import DataLoader
 import numpy as np
+import datetime
 
 
 class MultiLayerNeuralNet():
@@ -43,8 +46,8 @@ class MultiLayerNeuralNet():
         conv5 = self.conv_layer(conv4, 128, 256, "conv5")
 
         # Flatten the array to make it processable for fc layers
-        flattened = tf.reshape(conv5, [-1,256])
-        fcl1 = self.fc_layer(flattened, 256, 500, "fcl1")
+        flattened = tf.layers.Flatten()(conv5) #
+        fcl1 = self.fc_layer(flattened, 2304, 500, "fcl1")
         fcl2 = self.fc_layer(fcl1, 500, 500, "fcl1")
         fcl3 = self.fc_layer(fcl2, 500, 500, "fcl1")
         fcl4 = self.fc_layer(fcl3, 500, 500, "fcl1")
@@ -66,13 +69,12 @@ class MultiLayerNeuralNet():
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
             writer = tf.summary.FileWriter(
-                '../tmp/facial_keypoint/le_net/{}epochs_{}bs_Adam_lr{}'.format(epochs, batch_size, learning_rate))
+                '../tmp/facial_keypoint/le_net/{}epochs_{}bs_Adam_lr{}_{}'.format(epochs, batch_size, learning_rate, datetime.datetime.now().time()))
             writer.add_graph(sess.graph)
 
             # Training procedure
-            x_data = self.data_loader.images
             # Making one dimensional array from 2 dim image
-            x_data = [np.ravel(x) for x in x_data]
+            x_data = np.array([np.ravel(x) for x in self.data_loader.images])
             y_data = self.data_loader.keypoints
             for epoch in range(epochs):
                 epoch_loss = 0
@@ -87,6 +89,7 @@ class MultiLayerNeuralNet():
                     epoch_loss += c
 
                 if epoch % 5 == 0:
+                    batch_x, batch_y = np.array(x[i]), np.array(y[i])
                     s = sess.run(summ, feed_dict={self.x: batch_x, self.y: batch_y})
                     writer.add_summary(s, epoch)
 
@@ -94,4 +97,4 @@ class MultiLayerNeuralNet():
 
 
 ml_network = MultiLayerNeuralNet(path_to_data="../data/training.csv")
-ml_network.train(1e-2, 3000, 100)
+ml_network.train(5e-2, 200, 16)
