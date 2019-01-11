@@ -60,3 +60,4 @@ ENV/
 #Data
 data/
 scripts/test.py
+/tmp/savepoints/
