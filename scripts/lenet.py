@@ -1,8 +1,6 @@
 import tensorflow as tf
-from setuptools.command.test import test
 from sklearn.model_selection import train_test_split
 
-from tensorflow.python import debug as tf_debug
 from scripts.DataLoader import DataLoader
 import numpy as np
 import datetime
@@ -57,7 +55,7 @@ class LeNet():
 
         return output
 
-    def train(self, learning_rate, epochs, batch_size, save_model = False):
+    def train(self, learning_rate, epochs, batch_size, save_model=False):
         prediction = self.le_net_model(self.x_image)
 
         with tf.name_scope("loss"):
@@ -67,9 +65,8 @@ class LeNet():
         with tf.name_scope("train"):
             optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
 
-
         summ = tf.summary.merge_all()
-        best_epoch_loss = 999999999999
+        best_epoch_loss = 1000
         saver = tf.train.Saver()
         time = str(datetime.datetime.now().time()).split('.')[0]
 
@@ -104,7 +101,8 @@ class LeNet():
 
                 if epoch_loss < best_epoch_loss and save_model:
                     save_path = saver.save(sess, "../tmp/savepoints/lenet/{}/model.ckpt".format(time))
-                    tf.train.write_graph(sess.graph.as_graph_def(), '..', 'tmp/savepoints/lenet/{}/lenet.pbtxt'.format(time), as_text=True)
+                    tf.train.write_graph(sess.graph.as_graph_def(), '..',
+                                         'tmp/savepoints/lenet/{}/lenet.pbtxt'.format(time), as_text=True)
 
                     best_epoch_loss = epoch_loss
                     print("Model saved in path: %s" % save_path)

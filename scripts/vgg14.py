@@ -1,8 +1,5 @@
 import tensorflow as tf
-from setuptools.command.test import test
 from sklearn.model_selection import train_test_split
-
-from tensorflow.python import debug as tf_debug
 from scripts.DataLoader import DataLoader
 import numpy as np
 import datetime
@@ -39,7 +36,7 @@ class VGG():
             # TODO Angegeben war stride 1, macht aber bei maxpooling mit [2,2] wenig Sinn
             return tf.nn.max_pool(act2, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding="SAME")
 
-    def fc_layer_w_drpout(self, input, size_in, size_out, dropout_keep = 0.7, name="fc"):
+    def fc_layer_w_drpout(self, input, size_in, size_out, dropout_keep=0.7, name="fc"):
         with tf.name_scope(name):
             weights = tf.Variable(tf.truncated_normal([size_in, size_out], stddev=0.1), name="Weights")
             biases = tf.Variable(tf.constant(0.1, shape=[size_out]), name="Biases")
@@ -53,7 +50,6 @@ class VGG():
 
             return output
 
-
     def vgg_model(self, x):
         conv1 = self.conv_conv_layer(x, 1, 64, "conv1")
         conv2 = self.conv_conv_layer(conv1, 64, 128, "conv2")
@@ -65,7 +61,7 @@ class VGG():
 
         return output
 
-    def train(self, learning_rate, epochs, batch_size, optimizer = "adam", save_model=False):
+    def train(self, learning_rate, epochs, batch_size, optimizer="adam", save_model=False):
         prediction = self.vgg_model(self.x_image)
 
         with tf.name_scope("loss"):
@@ -76,11 +72,11 @@ class VGG():
             optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
             if optimizer == 'adam':
                 optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
-            elif optimizer =="sgd":
+            elif optimizer == "sgd":
                 optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss)
 
         summ = tf.summary.merge_all()
-        best_epoch_loss = 999999999999
+        best_epoch_loss = 1000
         saver = tf.train.Saver()
         time = str(datetime.datetime.now().time()).split('.')[0]
 
@@ -88,7 +84,7 @@ class VGG():
             sess.run(tf.global_variables_initializer())
             writer = tf.summary.FileWriter(
                 '../tmp/facial_keypoint/vgg/{}epochs_{}bs_Adam_lr{}_{}'.format(epochs, batch_size, learning_rate,
-                                                                                  time))
+                                                                               time))
             writer.add_graph(sess.graph)
 
             # Training procedure
@@ -116,7 +112,8 @@ class VGG():
                 if epoch_loss < best_epoch_loss and save_model:
                     save_path = saver.save(sess,
                                            "../tmp/savepoints/vgg/{}/model.ckpt".format(time))
-                    tf.train.write_graph(sess.graph.as_graph_def(), '..', 'tmp/savepoints/vgg/{}/vgg.pbtxt'.format(time), as_text=True)
+                    tf.train.write_graph(sess.graph.as_graph_def(), '..',
+                                         'tmp/savepoints/vgg/{}/vgg.pbtxt'.format(time), as_text=True)
 
                     best_epoch_loss = epoch_loss
                     print("Model saved in path: %s" % save_path)
