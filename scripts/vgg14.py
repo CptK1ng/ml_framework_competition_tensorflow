@@ -13,7 +13,6 @@ class VGG():
         self.x = tf.placeholder(tf.float32, [None, 9216], name="x")
         self.y = tf.placeholder(tf.float32, [None, 30], name="labels")
         self.x_image = tf.reshape(self.x, [-1, 96, 96, 1])
-        tf.summary.image('input', self.x_image, 3)
 
     def conv_conv_layer(self, input, size_in, size_out, name="conv"):
         with tf.name_scope(name):
@@ -79,7 +78,6 @@ class VGG():
         best_epoch_loss = 1000
         saver = tf.train.Saver()
         time = str(datetime.datetime.now().time()).split('.')[0]
-
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
             writer = tf.summary.FileWriter(
@@ -92,7 +90,9 @@ class VGG():
             x_data = np.array([np.ravel(x) for x in self.data_loader.images])
             y_data = self.data_loader.keypoints
             x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size=0.2)
+
             for epoch in range(epochs):
+                losses = []
                 epoch_loss = 0
 
                 total_batches = int(len(x_train) / batch_size)
@@ -103,6 +103,8 @@ class VGG():
                     batch_x, batch_y = np.array(x[i]), np.array(y[i])
                     _, c = sess.run([optimizer, loss], feed_dict={self.x: batch_x, self.y: batch_y})
                     epoch_loss += c
+                    losses.append(c)
+
 
                 if epoch % 5 == 0:
                     batch_x, batch_y = np.array(x[i]), np.array(y[i])
@@ -112,8 +114,9 @@ class VGG():
                 if epoch_loss < best_epoch_loss and save_model:
                     save_path = saver.save(sess,
                                            "../tmp/savepoints/vgg/{}/model.ckpt".format(time))
-                    tf.train.write_graph(sess.graph.as_graph_def(), '..',
-                                         'tmp/savepoints/vgg/{}/vgg.pbtxt'.format(time), as_text=True)
+                    #tf.train.write_graph(sess.graph.as_graph_def(), '..',
+                         #                '../tmp/savepoints/vgg/{}/vgg.pbtxt'.format(time), as_text=True)
+
 
                     best_epoch_loss = epoch_loss
                     print("Model saved in path: %s" % save_path)
@@ -122,4 +125,4 @@ class VGG():
 
 
 ml_network = VGG(path_to_data="../data/training.csv")
-ml_network.train(1e-2, 100, 50, optimizer='adam', save_model=True)
+ml_network.train(1e-2, 500, 32, optimizer='adam', save_model=True)

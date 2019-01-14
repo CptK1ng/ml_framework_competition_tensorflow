@@ -54,7 +54,7 @@ class OneLayerNeuralNet():
             sess.run(tf.initialize_all_variables())
             merged_summary = tf.summary.merge_all()
             writer = tf.summary.FileWriter(
-                '../tmp/facial_keypoint/one_layer/{}hl/{}epochs_{}bs_Adam_lr01'.format(self.hl_size, epochs,
+                '../tmp/facial_keypoint/one_layer/{}/{}hl/{}epochs_{}bs_Adam_lr01'.format(time, self.hl_size, epochs,
                                                                                        batch_size))
             writer.add_graph(sess.graph)
 

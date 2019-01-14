@@ -14,7 +14,11 @@ class LeNet():
         self.x = tf.placeholder(tf.float32, [None, 9216], name="x")
         self.y = tf.placeholder(tf.float32, [None, 30], name="labels")
         self.x_image = tf.reshape(self.x, [-1, 96, 96, 1])
+        self.mean_loss = 10000
+
+
         tf.summary.image('input', self.x_image, 3)
+
 
     def conv_layer(self, input, size_in, size_out, name="conv"):
         with tf.name_scope(name):
@@ -83,6 +87,7 @@ class LeNet():
             y_data = self.data_loader.keypoints
             x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size=0.2)
             for epoch in range(epochs):
+                losses = []
                 epoch_loss = 0
 
                 total_batches = int(len(x_train) / batch_size)
@@ -93,6 +98,10 @@ class LeNet():
                     batch_x, batch_y = np.array(x[i]), np.array(y[i])
                     _, c = sess.run([optimizer, loss], feed_dict={self.x: batch_x, self.y: batch_y})
                     epoch_loss += c
+                    losses.append(c)
+
+                self.mean_loss = np.mean(np.array(losses)) / batch_size
+                tf.summary.scalar("per_image_loss", self.mean_loss)
 
                 if epoch % 5 == 0:
                     batch_x, batch_y = np.array(x[i]), np.array(y[i])
@@ -107,8 +116,8 @@ class LeNet():
                     best_epoch_loss = epoch_loss
                     print("Model saved in path: %s" % save_path)
 
-                print('Epoch', epoch, 'completed out of', epochs, 'loss:', epoch_loss)
+                print('Epoch', epoch, 'completed out of', epochs, 'loss:', epoch_loss, 'per img loss: ', self.mean_loss)
 
 
 ml_network = LeNet(path_to_data="../data/training.csv")
-ml_network.train(1e-2, 100, 50, save_model=True)
+ml_network.train(1e-2, 250, 32, save_model=True)
