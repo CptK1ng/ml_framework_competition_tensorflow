@@ -1,7 +1,7 @@
 import tensorflow as tf
 from scripts.DataLoader import DataLoader
 import numpy as np
-
+import datetime
 
 class OneLayerNeuralNet():
 
@@ -11,7 +11,6 @@ class OneLayerNeuralNet():
         # 96px x 96px = 9216 size for input layer
         self.x = tf.placeholder(tf.float32, [None, 9216], name="x")
         self.y = tf.placeholder(tf.float32, [None, 30], name="lables")
-        self.train(self.x, 1500, 100)
 
     def one_layer_network_model(self, data):
         with tf.name_scope("fcn"):
@@ -34,7 +33,7 @@ class OneLayerNeuralNet():
 
         return output
 
-    def train(self, x, epochs, batch_size):
+    def train(self, epochs, batch_size, save_model = False):
         prediction = self.one_layer_network_model(self.x)
         # cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=prediction, labels=self.y ))
         with tf.name_scope("cost"):
@@ -46,17 +45,24 @@ class OneLayerNeuralNet():
             optimizer = tf.train.AdamOptimizer(learning_rate=0.01).minimize(cost)
 
         hm_epochs = epochs
+
+        time = str(datetime.datetime.now().time()).split('.')[0]
+        saver = tf.train.Saver()
+        best_epoch_loss = 99999999
         with tf.Session() as sess:
             sess.run(tf.initialize_all_variables())
             merged_summary = tf.summary.merge_all()
             writer = tf.summary.FileWriter(
-                '../tmp/facial_keypoint/{}hl/{}epochs_{}bs_Adam_lr01'.format(self.hl_size, epochs, batch_size))
+                '../tmp/facial_keypoint/one_layer/{}hl/{}epochs_{}bs_Adam_lr01'.format(self.hl_size, epochs, batch_size))
             writer.add_graph(sess.graph)
 
             x_data = self.data_loader.images
             # Making one dimensional array from 2 dim image
             x_data = [np.ravel(x) for x in x_data]
             y_data = self.data_loader.keypoints
+
+
+
             for epoch in range(hm_epochs):
                 epoch_loss = 0
 
@@ -71,7 +77,18 @@ class OneLayerNeuralNet():
 
                 s = sess.run(merged_summary, feed_dict={self.x: batch_x, self.y: batch_y})
                 writer.add_summary(s, epoch)
+
+                if epoch_loss < best_epoch_loss and save_model:
+                    save_path = saver.save(sess, "../tmp/savepoints/onelayer/{}/model.ckpt".format(time))
+                    tf.train.write_graph(sess.graph.as_graph_def(), '.', '../tmp/savepoints/onelayer/{}/one_layer.pbtxt',
+                                         as_text=True)
+
+                    best_epoch_loss = epoch_loss
+                    print("Model saved in path: %s" % save_path)
+
                 print('Epoch', epoch, 'completed out of', hm_epochs, 'loss:', epoch_loss)
 
 
-OneLayerNeuralNet(path_to_data="../data/training.csv", hl_size=500)
+olnn = OneLayerNeuralNet(path_to_data="../data/training.csv", hl_size=500)
+olnn.train(500,32,save_model=True)
+
