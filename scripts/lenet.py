@@ -8,7 +8,7 @@ import numpy as np
 import datetime
 
 
-class MultiLayerNeuralNet():
+class LeNet():
 
     def __init__(self, path_to_data, ):
         self.data_loader = DataLoader(path_to_data=path_to_data)
@@ -51,8 +51,8 @@ class MultiLayerNeuralNet():
         flattened = tf.layers.Flatten()(conv5)  #
         fcl1 = self.fc_layer(flattened, int(flattened.shape[1]), 500, "fcl1")
         fcl2 = self.fc_layer(fcl1, 500, 500, "fcl1")
-        fcl3 = self.fc_layer(fcl2, 500, 500, "fcl1")
-        fcl4 = self.fc_layer(fcl3, 500, 500, "fcl1")
+        fcl3 = self.fc_layer(fcl2, 500, 500, "fcl2")
+        fcl4 = self.fc_layer(fcl3, 500, 500, "fcl3")
         output = self.fc_layer(fcl4, 500, 30, "output")
 
         return output
@@ -65,17 +65,19 @@ class MultiLayerNeuralNet():
             tf.summary.scalar("mse", loss)
 
         with tf.name_scope("train"):
-            optimizer = tf.train.AdamOptimizer(learning_rate=0.01).minimize(loss)
+            optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
 
 
         summ = tf.summary.merge_all()
         best_epoch_loss = 999999999999
         saver = tf.train.Saver()
+        time = str(datetime.datetime.now().time()).split('.')[0]
+
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
             writer = tf.summary.FileWriter(
                 '../tmp/facial_keypoint/le_net/{}epochs_{}bs_Adam_lr{}_{}'.format(epochs, batch_size, learning_rate,
-                                                                                  datetime.datetime.now().time()))
+                                                                                  time))
             writer.add_graph(sess.graph)
 
             # Training procedure
@@ -101,12 +103,14 @@ class MultiLayerNeuralNet():
                     writer.add_summary(s, epoch)
 
                 if epoch_loss < best_epoch_loss and save_model:
-                    save_path = saver.save(sess, "../tmp/savepoints{}/model.ckpt".format(datetime.datetime.now().time()))
+                    save_path = saver.save(sess, "../tmp/savepoints/lenet/{}/model.ckpt".format(time))
+                    tf.train.write_graph(sess.graph.as_graph_def(), '..', 'tmp/savepoints/lenet/{}/lenet.pbtxt'.format(time), as_text=True)
+
                     best_epoch_loss = epoch_loss
                     print("Model saved in path: %s" % save_path)
 
                 print('Epoch', epoch, 'completed out of', epochs, 'loss:', epoch_loss)
 
 
-ml_network = MultiLayerNeuralNet(path_to_data="../data/training.csv")
-ml_network.train(1e-2, 100, 50)
+ml_network = LeNet(path_to_data="../data/training.csv")
+ml_network.train(1e-2, 100, 50, save_model=True)
