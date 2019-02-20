@@ -34,7 +34,7 @@ class OneLayerNeuralNet():
 
         return output
 
-    def train(self, epochs, batch_size, save_model=False):
+    def train(self, epochs, batch_size, save_model=False, modus='inference'):
         prediction = self.one_layer_network_model(self.x)
         # cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=prediction, labels=self.y ))
         with tf.name_scope("cost"):
@@ -51,6 +51,7 @@ class OneLayerNeuralNet():
         saver = tf.train.Saver()
         best_epoch_loss = 1000
         with tf.Session() as sess:
+
             sess.run(tf.initialize_all_variables())
             merged_summary = tf.summary.merge_all()
             writer = tf.summary.FileWriter(
