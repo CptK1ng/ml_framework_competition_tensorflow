@@ -8,7 +8,6 @@ import cv2 as cv
 from PIL import Image
 
 
-
 class LeNet():
 
     def __init__(self, path_to_data, ):
@@ -75,11 +74,9 @@ class LeNet():
 
         with tf.name_scope("loss"):
             loss = tf.reduce_sum(tf.losses.mean_squared_error(labels=self.y, predictions=prediction))
-            tf.summary.scalar("mse", loss)
-
-        #with tf.name_scope("test_loss"):
-            #test_loss = tf.reduce_sum(tf.losses.mean_squared_error(labels=self.y, predictions=prediction))
-            #tf.summary.scalar("test_sse", loss)
+            tf.summary.scalar("sse", loss)
+            test_loss = tf.reduce_sum(tf.losses.mean_squared_error(labels=self.y, predictions=prediction))
+            valid_summary = tf.summary.scalar("test_sse", test_loss)
 
         with tf.name_scope("train"):
             optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
@@ -145,16 +142,18 @@ class LeNet():
                     tf.summary.scalar("per_image_loss", self.mean_loss)
 
 
-                    #Test loss
-                    if epoch % 10 == 0 and False:
+                    #Test current weight on test data every 5 epochs
+                    if epoch % 5 == 0:
                         print("Calculating Test loss")
 
-                        #test_batch_x, test_batch_y = np.array(test_data[i]), np.array(test_labels[i])
-                        s = sess.run(test_loss, feed_dict={self.x: x_test, self.y: y_test})
-                        print(s)
-                        s = tf.Summary(value=[tf.Summary.Value(tag="test_loss", simple_value=s)])
-                        #writer.add_summary(s, epoch)
+                        l, tls = sess.run([test_loss, valid_summary], feed_dict={self.x: x_test, self.y: y_test})
+                        writer.add_summary(tls, epoch)
 
+                    #Writing all information to SummaryWriter
+                    if epoch % 5 == 0:
+                        batch_x, batch_y = np.array(x[i]), np.array(y[i])
+                        s = sess.run(summ, feed_dict={self.x: batch_x, self.y: batch_y})
+                        writer.add_summary(s, epoch)
 
                     if epoch_loss < best_epoch_loss and save_model:
                         save_path = saver.save(sess, "../tmp/savepoints/lenet/{}/model{}.ckpt".format(time,epoch))
@@ -169,4 +168,4 @@ class LeNet():
 
 
 ml_network = LeNet(path_to_data="../data/training.csv")
-ml_network.train(5e-3, 500, 32, save_model=False, modus="training")
+ml_network.train(5e-3, 250, 32, save_model=True, modus="training")
