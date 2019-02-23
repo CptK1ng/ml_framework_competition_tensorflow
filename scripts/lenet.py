@@ -11,8 +11,8 @@ import matplotlib.pyplot as plt
 
 class LeNet():
 
-    def __init__(self,data_loader, path_to_data = None, ):
-        self.data_loader = data_loader #DataLoader(path_to_data=path_to_data)
+    def __init__(self, data_loader, path_to_data=None, ):
+        self.data_loader = data_loader  # DataLoader(path_to_data=path_to_data)
         # 96px x 96px = 9216 size for input layer
         self.x = tf.placeholder(tf.float32, [None, 9216], name="x")
         self.y = tf.placeholder(tf.float32, [None, 30], name="labels")
@@ -70,7 +70,7 @@ class LeNet():
 
         return output
 
-    def train(self, learning_rate, epochs, batch_size, save_model=False, modus='inference', repeat = 1):
+    def train(self, learning_rate, epochs, batch_size, save_model=False, modus='inference', repeat_training_n_times=1):
         prediction = self.le_net_model(self.x_image)
 
         with tf.name_scope("loss"):
@@ -82,12 +82,7 @@ class LeNet():
         with tf.name_scope("train"):
             optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
 
-        summ = tf.summary.merge_all()
-        best_epoch_loss = 1000
-        saver = tf.train.Saver()
         time = str(datetime.datetime.now().time()).split('.')[0]
-        training_losses, test_losses = [], []
-
         with tf.Session() as sess:
             # Training procedure
             # Making one dimensional array from 2 dim image
@@ -98,35 +93,25 @@ class LeNet():
             imgs_raw = self.data_loader.images
             dl1 = np.array([np.ravel(x) for x in self.data_loader.images])
 
-            if modus is 'inference':
-                saver.restore(sess, "../tmp/savepoints/lenet/16:01:05/model227.ckpt")
-                sess.run(tf.global_variables_initializer())
 
-                for i in range(len(imgs_raw)):
-                    batch_x = np.array(dl1[i])
-                    img_e = np.expand_dims(batch_x, axis=0)
-
-                    pred = sess.run(prediction, feed_dict={self.x: img_e})
-
-                    new_img = np.array(self.getimage(imgs_raw[i]))
-                    open_cv_image = new_img[:, :, ::-1].copy()
-
-                    for pts in range(0, pred.shape[1], 2):
-                        open_cv_image = cv.circle(open_cv_image, (int(pred[0][pts]), int(pred[0][pts + 1])), 1,
-                                                  (255, 0, 0), -1)
-
-                    open_cv_image = cv.resize(open_cv_image, (320, 320), interpolation=cv.INTER_CUBIC)
-                    cv.imwrite("../data/output/{}.png".format(str(i)), open_cv_image)
-                    cv.waitKey(1)
-
-            elif modus is 'training':
-                sess.run(tf.global_variables_initializer())
+            all_train_losses, all_test_losses = [], []
+            for run in range(repeat_training_n_times):
                 writer = tf.summary.FileWriter(
-                    '../tmp/facial_keypoint/le_net/{}epochs_{}bs_Adam_lr{}_{}'.format(epochs, batch_size, learning_rate,
-                                                                                      time))
+                    '../tmp/facial_keypoint/le_net/{}epochs_{}bs_Adam_lr{}_{}/No{}'.format(epochs, batch_size, learning_rate,
+                                                                                      time, run))
+                print("Started Training No. ", run)
+                sess.run(tf.global_variables_initializer())
                 writer.add_graph(sess.graph)
 
+                summ = tf.summary.merge_all()
+                best_epoch_loss = 1000
+                saver = tf.train.Saver()
+
+                training_losses, test_losses = [], []
                 for epoch in range(epochs):
+                    if epoch % 20 == 0:
+                        print("Training epoch ", epoch)
+
                     losses = []
                     epoch_loss = 0
 
@@ -137,19 +122,17 @@ class LeNet():
                     for i in range(total_batches):
                         batch_x, batch_y = np.array(x[i]), np.array(y[i])
                         _, c = sess.run([optimizer, loss], feed_dict={self.x: batch_x, self.y: batch_y})
-                        epoch_loss += c
+                        epoch_loss += c/batch_size
                         losses.append(c)
 
                     self.mean_loss = np.mean(np.array(losses)) / batch_size
-                    print("Mean training loss: ", self.mean_loss)
+                    # print("Mean training loss: ", self.mean_loss)
 
                     # Test current weight on test data every 5 epochs
                     if epoch % 1 == 0:
-                        print("Calculating Test loss")
-
                         l, tls = sess.run([test_loss, valid_summary], feed_dict={self.x: x_test, self.y: y_test})
                         writer.add_summary(tls, epoch)
-                        print("Test loss: ", l)
+                        # print("Test loss: ", l)
                         test_losses.append(l)
                     # Writing all information to SummaryWriter
                     if epoch % 1 == 0:
@@ -162,22 +145,24 @@ class LeNet():
                                              'tmp/savepoints/lenet/{}/lenet.pbtxt'.format(time), as_text=True)
 
                         best_epoch_loss = epoch_loss
-                        print("Model saved in path: %s" % save_path)
+                        #print("Model saved in path: %s" % save_path)
 
-                    print('Epoch', epoch, 'completed out of', epochs, 'loss:', epoch_loss / batch_size,
-                          'per img loss: ', self.mean_loss, "Test loss: ", test_loss)
+                    # print('Epoch', epoch, 'completed out of', epochs, 'loss:', epoch_loss / batch_size,
+                    # 'per img loss: ', self.mean_loss, "Test loss: ", test_loss)
                     training_losses.append(epoch_loss / batch_size)
-                sess.close()
+                print(
+                    "Finished run No. {}, \n\t train loss at epoch {}: {} | test loss last epoch: {}, \n\t Best loss {}. Training Take:".format(
+                        run, epochs, training_losses[-1], test_losses[-1], best_epoch_loss))
+                # sess.close()
+                all_train_losses.append(training_losses)
+                all_test_losses.append(test_losses)
+                plt.plot(np.arange(len(training_losses)), training_losses)
+                plt.plot(np.arange(len(training_losses)), test_losses)
+                plt.legend(("Train", "test"))
+                plt.yscale('log')
+                plt.show()
 
-        plt.plot(np.arange(len(training_losses)), training_losses)
-        plt.plot(np.arange(len(training_losses)), test_losses)
-        plt.legend(("Train", "test"))
-        plt.yscale('log')
-
-        plt.show()
 
 dl = DataLoader("../data/training.csv")
-for i in range(5):
-    ml_network = LeNet(data_loader=dl)
-    ml_network.train(5e-3, 5, 32, save_model=True, modus="training")
-
+ml_network = LeNet(data_loader=dl)
+ml_network.train(1e-3, 5, 32, save_model=True, modus="training", repeat_training_n_times=10)
