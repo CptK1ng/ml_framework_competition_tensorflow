@@ -71,7 +71,7 @@ class LeNet():
 
         return output
 
-    def train(self, learning_rate, epochs, batch_size, save_model=False, modus='inference', repeat_training_n_times=1):
+    def train(self, learning_rate, epochs, batch_size, save_model=False, repeat_training_n_times=1):
         prediction = self.le_net_model(self.x_image)
 
         with tf.name_scope("loss"):
@@ -141,8 +141,9 @@ class LeNet():
                         batch_x, batch_y = np.array(x[i]), np.array(y[i])
                         s = sess.run(summ, feed_dict={self.x: batch_x, self.y: batch_y})
                         writer.add_summary(s, epoch)
+
                     if epoch_loss < best_epoch_loss and save_model:
-                        save_path = saver.save(sess, "../tmp/savepoints/lenet/{}/model{}.ckpt".format(day_time, epoch))
+                        save_path = saver.save(sess, "../tmp/savepoints/lenet/{}/model.ckpt".format(day_time))
                         tf.train.write_graph(sess.graph.as_graph_def(), '..',
                                              'tmp/savepoints/lenet/{}/lenet.pbtxt'.format(day_time), as_text=True)
 
@@ -168,4 +169,4 @@ class LeNet():
 
 dl = DataLoader("../data/training.csv")
 ml_network = LeNet(data_loader=dl)
-ml_network.train(1e-3, 8, 32, save_model=True, modus="training", repeat_training_n_times=5)
+ml_network.train(1e-3, 8, 32, save_model=True, repeat_training_n_times=5)

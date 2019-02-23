@@ -113,7 +113,8 @@ class VGG():
 
                 if epoch_loss < best_epoch_loss and save_model:
                     save_path = saver.save(sess,
-                                           "../tmp/savepoints/vgg/{}/model.ckpt".format(time))
+                                           "../tmp/savepoints/vgg/{}"
+                                           "/model.ckpt".format(time))
                     #tf.train.write_graph(sess.graph.as_graph_def(), '..',
                          #                '../tmp/savepoints/vgg/{}/vgg.pbtxt'.format(time), as_text=True)
 
