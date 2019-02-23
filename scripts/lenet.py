@@ -6,12 +6,13 @@ import numpy as np
 import datetime
 import cv2 as cv
 from PIL import Image
+import matplotlib.pyplot as plt
 
 
 class LeNet():
 
-    def __init__(self, path_to_data, ):
-        self.data_loader = DataLoader(path_to_data=path_to_data)
+    def __init__(self,data_loader, path_to_data = None, ):
+        self.data_loader = data_loader #DataLoader(path_to_data=path_to_data)
         # 96px x 96px = 9216 size for input layer
         self.x = tf.placeholder(tf.float32, [None, 9216], name="x")
         self.y = tf.placeholder(tf.float32, [None, 30], name="labels")
@@ -69,7 +70,7 @@ class LeNet():
 
         return output
 
-    def train(self, learning_rate, epochs, batch_size, save_model=False, modus='inference'):
+    def train(self, learning_rate, epochs, batch_size, save_model=False, modus='inference', repeat = 1):
         prediction = self.le_net_model(self.x_image)
 
         with tf.name_scope("loss"):
@@ -85,6 +86,7 @@ class LeNet():
         best_epoch_loss = 1000
         saver = tf.train.Saver()
         time = str(datetime.datetime.now().time()).split('.')[0]
+        training_losses, test_losses = [], []
 
         with tf.Session() as sess:
             # Training procedure
@@ -139,33 +141,43 @@ class LeNet():
                         losses.append(c)
 
                     self.mean_loss = np.mean(np.array(losses)) / batch_size
-                    tf.summary.scalar("per_image_loss", self.mean_loss)
+                    print("Mean training loss: ", self.mean_loss)
 
-
-                    #Test current weight on test data every 5 epochs
-                    if epoch % 5 == 0:
+                    # Test current weight on test data every 5 epochs
+                    if epoch % 1 == 0:
                         print("Calculating Test loss")
 
                         l, tls = sess.run([test_loss, valid_summary], feed_dict={self.x: x_test, self.y: y_test})
                         writer.add_summary(tls, epoch)
-
-                    #Writing all information to SummaryWriter
-                    if epoch % 5 == 0:
+                        print("Test loss: ", l)
+                        test_losses.append(l)
+                    # Writing all information to SummaryWriter
+                    if epoch % 1 == 0:
                         batch_x, batch_y = np.array(x[i]), np.array(y[i])
                         s = sess.run(summ, feed_dict={self.x: batch_x, self.y: batch_y})
                         writer.add_summary(s, epoch)
-
                     if epoch_loss < best_epoch_loss and save_model:
-                        save_path = saver.save(sess, "../tmp/savepoints/lenet/{}/model{}.ckpt".format(time,epoch))
+                        save_path = saver.save(sess, "../tmp/savepoints/lenet/{}/model{}.ckpt".format(time, epoch))
                         tf.train.write_graph(sess.graph.as_graph_def(), '..',
                                              'tmp/savepoints/lenet/{}/lenet.pbtxt'.format(time), as_text=True)
 
                         best_epoch_loss = epoch_loss
                         print("Model saved in path: %s" % save_path)
 
-                    print('Epoch', epoch, 'completed out of', epochs, 'loss:', epoch_loss/batch_size, 'per img loss: ',
-                          self.mean_loss)
+                    print('Epoch', epoch, 'completed out of', epochs, 'loss:', epoch_loss / batch_size,
+                          'per img loss: ', self.mean_loss, "Test loss: ", test_loss)
+                    training_losses.append(epoch_loss / batch_size)
+                sess.close()
 
+        plt.plot(np.arange(len(training_losses)), training_losses)
+        plt.plot(np.arange(len(training_losses)), test_losses)
+        plt.legend(("Train", "test"))
+        plt.yscale('log')
 
-ml_network = LeNet(path_to_data="../data/training.csv")
-ml_network.train(5e-3, 250, 32, save_model=True, modus="training")
+        plt.show()
+
+dl = DataLoader("../data/training.csv")
+for i in range(5):
+    ml_network = LeNet(data_loader=dl)
+    ml_network.train(5e-3, 5, 32, save_model=True, modus="training")
+
