@@ -33,7 +33,7 @@ def load_graph(frozen_graph_filename):
 
 if __name__ == '__main__':
     # We use our "load_graph" function
-    graph = load_graph("/home/lukas/Projects/Projektarbeit_WS18/tmp/savepoints/lenet/10:34:13/frozen_model.pb")
+    graph = load_graph("/home/lukas/Projects/Projektarbeit_WS18/tmp/savepoints/lenet/16:01:05/frozen_model.pb")
 
     # access the input and output nodes
     x = graph.get_tensor_by_name('prefix/x:0')
@@ -44,9 +44,9 @@ if __name__ == '__main__':
     dl1 = np.array([np.ravel(x) for x in dl.images])
     with tf.Session(graph=graph) as sess:
 
-        imgs = dl1[25:30]
-        imgs_raw = dl.images[25:30]
-        counter = 5
+        imgs = dl1[:200]
+        imgs_raw = dl.images[:200]
+        counter = 0
         for img, img_raw in zip(imgs, imgs_raw):
             img_e = np.expand_dims(img, axis=0)
             y_out = sess.run(y, feed_dict={
