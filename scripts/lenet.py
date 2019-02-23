@@ -41,7 +41,6 @@ class LeNet():
             tf.summary.histogram("weights", weights)
             tf.summary.histogram("biases", biases)
             tf.summary.histogram("activations", act)
-            # TODO Angegeben war stride 1, macht aber bei maxpooling mit [2,2] wenig Sinn
             return tf.nn.max_pool(act, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding="SAME")
 
     def fc_layer(self, input, size_in, size_out, name="fc"):
@@ -77,9 +76,10 @@ class LeNet():
         with tf.name_scope("loss"):
             loss = tf.reduce_sum(tf.losses.mean_squared_error(labels=self.y, predictions=prediction))
             tf.summary.scalar("sse", loss)
+            """
             test_loss = tf.reduce_sum(tf.losses.mean_squared_error(labels=self.y, predictions=prediction))
             valid_summary = tf.summary.scalar("test_sse", test_loss)
-
+            """
         with tf.name_scope("train"):
             optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
 
@@ -97,12 +97,16 @@ class LeNet():
 
             all_train_losses, all_test_losses = [], []
             for run in range(repeat_training_n_times):
-                writer = tf.summary.FileWriter(
-                    '../tmp/facial_keypoint/le_net/{}epochs_{}bs_Adam_lr{}_{}/No{}'.format(epochs, batch_size, learning_rate,
+                train_writer = tf.summary.FileWriter(
+                    '../tmp/facial_keypoint/le_net/{}epochs_{}bs_Adam_lr{}_{}/{}/train'.format(epochs, batch_size, learning_rate,
                                                                                       day_time, run))
+                test_writer = tf.summary.FileWriter(
+                    '../tmp/facial_keypoint/le_net/{}epochs_{}bs_Adam_lr{}_{}/{}/test'.format(epochs, batch_size,
+                                                                                           learning_rate,
+                                                                                           day_time, run))
                 print("Started Training No. ", run)
                 sess.run(tf.global_variables_initializer())
-                writer.add_graph(sess.graph)
+                train_writer.add_graph(sess.graph)
 
                 summ = tf.summary.merge_all()
                 best_epoch_loss = 1000
@@ -132,15 +136,15 @@ class LeNet():
 
                     # Test current weight on test data every 5 epochs
                     if epoch % 1 == 0:
-                        l, tls = sess.run([test_loss, valid_summary], feed_dict={self.x: x_test, self.y: y_test})
-                        writer.add_summary(tls, epoch)
+                        l, s = sess.run([loss, summ], feed_dict={self.x: x_test, self.y: y_test})
+                        train_writer.add_summary(s, epoch)
                         # print("Test loss: ", l)
                         test_losses.append(l)
                     # Writing all information to SummaryWriter
                     if epoch % 1 == 0:
                         batch_x, batch_y = np.array(x[i]), np.array(y[i])
                         s = sess.run(summ, feed_dict={self.x: batch_x, self.y: batch_y})
-                        writer.add_summary(s, epoch)
+                        test_writer.add_summary(s, epoch)
 
                     if epoch_loss < best_epoch_loss and save_model:
                         save_path = saver.save(sess, "../tmp/savepoints/lenet/{}/model.ckpt".format(day_time))
