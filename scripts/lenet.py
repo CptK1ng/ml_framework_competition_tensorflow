@@ -8,6 +8,7 @@ import cv2 as cv
 from PIL import Image
 
 
+
 class LeNet():
 
     def __init__(self, path_to_data, ):
@@ -73,8 +74,12 @@ class LeNet():
         prediction = self.le_net_model(self.x_image)
 
         with tf.name_scope("loss"):
-            loss = tf.reduce_mean(tf.losses.mean_squared_error(labels=self.y, predictions=prediction))
+            loss = tf.reduce_sum(tf.losses.mean_squared_error(labels=self.y, predictions=prediction))
             tf.summary.scalar("mse", loss)
+
+        #with tf.name_scope("test_loss"):
+            #test_loss = tf.reduce_sum(tf.losses.mean_squared_error(labels=self.y, predictions=prediction))
+            #tf.summary.scalar("test_sse", loss)
 
         with tf.name_scope("train"):
             optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
@@ -95,7 +100,7 @@ class LeNet():
             dl1 = np.array([np.ravel(x) for x in self.data_loader.images])
 
             if modus is 'inference':
-                saver.restore(sess, "../tmp/savepoints/lenet/17:05:10/model.ckpt")
+                saver.restore(sess, "../tmp/savepoints/lenet/16:01:05/model227.ckpt")
                 sess.run(tf.global_variables_initializer())
 
                 for i in range(len(imgs_raw)):
@@ -139,22 +144,29 @@ class LeNet():
                     self.mean_loss = np.mean(np.array(losses)) / batch_size
                     tf.summary.scalar("per_image_loss", self.mean_loss)
 
-                    if epoch % 5 == 0:
-                        batch_x, batch_y = np.array(x[i]), np.array(y[i])
-                        s = sess.run(summ, feed_dict={self.x: batch_x, self.y: batch_y})
-                        writer.add_summary(s, epoch)
+
+                    #Test loss
+                    if epoch % 10 == 0 and False:
+                        print("Calculating Test loss")
+
+                        #test_batch_x, test_batch_y = np.array(test_data[i]), np.array(test_labels[i])
+                        s = sess.run(test_loss, feed_dict={self.x: x_test, self.y: y_test})
+                        print(s)
+                        s = tf.Summary(value=[tf.Summary.Value(tag="test_loss", simple_value=s)])
+                        #writer.add_summary(s, epoch)
+
 
                     if epoch_loss < best_epoch_loss and save_model:
-                        save_path = saver.save(sess, "../tmp/savepoints/lenet/{}/model.ckpt".format(time))
+                        save_path = saver.save(sess, "../tmp/savepoints/lenet/{}/model{}.ckpt".format(time,epoch))
                         tf.train.write_graph(sess.graph.as_graph_def(), '..',
                                              'tmp/savepoints/lenet/{}/lenet.pbtxt'.format(time), as_text=True)
 
                         best_epoch_loss = epoch_loss
                         print("Model saved in path: %s" % save_path)
 
-                    print('Epoch', epoch, 'completed out of', epochs, 'loss:', epoch_loss, 'per img loss: ',
+                    print('Epoch', epoch, 'completed out of', epochs, 'loss:', epoch_loss/batch_size, 'per img loss: ',
                           self.mean_loss)
 
 
 ml_network = LeNet(path_to_data="../data/training.csv")
-ml_network.train(5e-3, 250, 32, save_model=True, modus="inference")
+ml_network.train(5e-3, 500, 32, save_model=False, modus="training")
