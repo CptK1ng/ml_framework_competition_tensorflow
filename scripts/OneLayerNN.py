@@ -2,6 +2,9 @@ import tensorflow as tf
 from scripts.DataLoader import DataLoader
 import numpy as np
 import datetime
+from sklearn.model_selection import train_test_split
+import time
+import matplotlib.pyplot as plt
 
 
 class OneLayerNeuralNet():
@@ -11,7 +14,7 @@ class OneLayerNeuralNet():
         self.hl_size = hl_size
         # 96px x 96px = 9216 size for input layer
         self.x = tf.placeholder(tf.float32, [None, 9216], name="x")
-        self.y = tf.placeholder(tf.float32, [None, 30], name="lables")
+        self.y = tf.placeholder(tf.float32, [None, 30], name="labels")
 
     def one_layer_network_model(self, data):
         with tf.name_scope("fcn"):
@@ -34,62 +37,101 @@ class OneLayerNeuralNet():
 
         return output
 
-    def train(self, epochs, batch_size, save_model=False, modus='inference'):
+    def train(self, learning_rate, epochs, batch_size, save_model=False, repeat_training_n_times=1):
         prediction = self.one_layer_network_model(self.x)
-        # cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=prediction, labels=self.y ))
-        with tf.name_scope("cost"):
-            cost = tf.reduce_mean(tf.losses.mean_squared_error(labels=self.y, predictions=prediction))
-            tf.summary.scalar("mse", cost)
+        with tf.name_scope("loss"):
+            loss = tf.reduce_sum(tf.losses.mean_squared_error(labels=self.y, predictions=prediction))
+            tf.summary.scalar("sse", loss)
 
         with tf.name_scope("train"):
             # optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.01).minimize(cost)
-            optimizer = tf.train.AdamOptimizer(learning_rate=0.01).minimize(cost)
+            optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
 
         hm_epochs = epochs
 
-        time = str(datetime.datetime.now().time()).split('.')[0]
+        day_time = str(datetime.datetime.now().time()).split('.')[0]
         saver = tf.train.Saver()
         best_epoch_loss = 1000
+
         with tf.Session() as sess:
 
-            sess.run(tf.initialize_all_variables())
-            merged_summary = tf.summary.merge_all()
-            writer = tf.summary.FileWriter(
-                '../tmp/facial_keypoint/one_layer/{}/{}hl/{}epochs_{}bs_Adam_lr01'.format(time, self.hl_size, epochs,
-                                                                                       batch_size))
-            writer.add_graph(sess.graph)
+            all_train_losses, all_test_losses = [], []
+            for run in range(repeat_training_n_times):
+                x_data = self.data_loader.images
+                # Making one dimensional array from 2 dim image
+                x_data = [np.ravel(x) for x in x_data]
+                y_data = self.data_loader.keypoints
+                x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size=0.2)
 
-            x_data = self.data_loader.images
-            # Making one dimensional array from 2 dim image
-            x_data = [np.ravel(x) for x in x_data]
-            y_data = self.data_loader.keypoints
+                train_writer = tf.summary.FileWriter(
+                    '../tmp/facial_keypoint/one_layer/{}hl/{}epochs_{}bs_Adam_lr{}/{}/{}/train'.format(self.hl_size,
+                                                                                                       epochs,
+                                                                                                       batch_size,
+                                                                                                       learning_rate,
+                                                                                                       day_time, run))
+                test_writer = tf.summary.FileWriter(
+                    '../tmp/facial_keypoint/one_layer/{}hl/{}epochs_{}bs_Adam_lr{}/{}/{}/test'.format(self.hl_size,
+                                                                                                      epochs,
+                                                                                                      batch_size,
+                                                                                                      learning_rate,
+                                                                                                      day_time, run))
+                print("Started Training No. ", run)
+                sess.run(tf.global_variables_initializer())
+                train_writer.add_graph(sess.graph)
 
-            for epoch in range(hm_epochs):
-                epoch_loss = 0
+                merged_summary = tf.summary.merge_all()
+                best_epoch_loss = 1000
+                saver = tf.train.Saver()
 
-                total_batches = int(len(self.data_loader.images) / batch_size)
-                x = np.array_split(x_data, total_batches)
-                y = np.array_split(y_data, total_batches)
+                training_losses, test_losses = [], []
+                start_time = time.perf_counter()
+                for epoch in range(hm_epochs):
+                    if epoch % 20 == 0:
+                        print("Training epoch ", epoch)
 
-                for i in range(total_batches):
-                    batch_x, batch_y = np.array(x[i]), np.array(y[i])
-                    _, c = sess.run([optimizer, cost], feed_dict={self.x: batch_x, self.y: batch_y})
-                    epoch_loss += c
+                    losses = []
+                    epoch_loss = 0
 
-                s = sess.run(merged_summary, feed_dict={self.x: batch_x, self.y: batch_y})
-                writer.add_summary(s, epoch)
+                    total_batches = int(len(x_train) / batch_size)
+                    x = np.array_split(x_train, total_batches)
+                    y = np.array_split(y_train, total_batches)
 
-                if epoch_loss < best_epoch_loss and save_model:
-                    save_path = saver.save(sess, "../tmp/savepoints/onelayer/{}/model.ckpt".format(time))
-                    tf.train.write_graph(sess.graph.as_graph_def(), '..',
-                                         'tmp/savepoints/onelayer/{}/one_layer.pbtxt'.format(time),
-                                         as_text=True)
+                    for i in range(total_batches):
+                        batch_x, batch_y = np.array(x[i]), np.array(y[i])
+                        _, c = sess.run([optimizer, loss], feed_dict={self.x: batch_x, self.y: batch_y})
+                        epoch_loss += c / batch_size
+                        losses.append(c)
 
-                    best_epoch_loss = epoch_loss
-                    print("Model saved in path: %s" % save_path)
+                    if epoch % 1 == 0:
+                        l, s = sess.run([loss, merged_summary], feed_dict={self.x: x_test, self.y: y_test})
+                        test_writer.add_summary(s, epoch)
+                        test_losses.append(l)
 
-                print('Epoch', epoch, 'completed out of', hm_epochs, 'loss:', epoch_loss)
+                    if epoch % 1 == 0:
+                        batch_x, batch_y = np.array(x[i]), np.array(y[i])
+                        s = sess.run(merged_summary, feed_dict={self.x: batch_x, self.y: batch_y})
+                        train_writer.add_summary(s, epoch)
 
+                    if epoch_loss < best_epoch_loss and save_model:
+                        saver.save(sess, "../tmp/savepoints/onelayer/{}/model.ckpt".format(day_time))
+                        tf.train.write_graph(sess.graph.as_graph_def(), '..',
+                                             'tmp/savepoints/onelayer/{}/one_layer.pbtxt'.format(day_time), as_text=True)
+
+                        best_epoch_loss = epoch_loss
+
+                    training_losses.append(epoch_loss / batch_size)
+                end_time = datetime.timedelta(seconds=time.perf_counter() - start_time)
+                print(
+                    "Finished run No. {}, \n\t train loss at epoch {}: {} | test loss last epoch: {}, \n\t Best loss {}. Training takes: {}".format(
+                        run, epochs, training_losses[-1], test_losses[-1], best_epoch_loss, end_time))
+
+                all_train_losses.append(training_losses)
+                all_test_losses.append(test_losses)
+                plt.plot(np.arange(len(training_losses)), training_losses)
+                plt.plot(np.arange(len(training_losses)), test_losses)
+                plt.legend(("Train", "test"))
+                plt.yscale('log')
+                plt.show()
 
 olnn = OneLayerNeuralNet(path_to_data="../data/training.csv", hl_size=500)
-olnn.train(500, 32, save_model=True)
+olnn.train(10e-3, 400, 32, save_model=True, repeat_training_n_times=5)
