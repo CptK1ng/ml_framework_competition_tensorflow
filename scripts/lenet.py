@@ -73,12 +73,10 @@ class LeNet():
         prediction = self.le_net_model(self.x_image)
 
         with tf.name_scope("loss"):
+            # == loss = tf.reduce_sum(tf.pow(prediction - Y,2))/(n_instances)
             loss = tf.reduce_sum(tf.losses.mean_squared_error(labels=self.y, predictions=prediction))
             tf.summary.scalar("sse", loss)
-            """
-            test_loss = tf.reduce_sum(tf.losses.mean_squared_error(labels=self.y, predictions=prediction))
-            valid_summary = tf.summary.scalar("test_sse", test_loss)
-            """
+
         with tf.name_scope("train"):
             optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
 
@@ -88,20 +86,21 @@ class LeNet():
             # Training procedure
             # Making one dimensional array from 2 dim image
 
-
             all_train_losses, all_test_losses = [], []
             for run in range(repeat_training_n_times):
                 x_data = np.array([np.ravel(x) for x in self.data_loader.images])
                 y_data = self.data_loader.keypoints
                 x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size=0.2)
+
                 train_writer = tf.summary.FileWriter(
-                    '../tmp/facial_keypoint/le_net/{}epochs_{}bs_Adam_lr{}_{}/{}/train'.format(epochs, batch_size, learning_rate,
-                                                                                      day_time, run))
+                    '../tmp/facial_keypoint/le_net/{}epochs_{}bs_Adam_lr{}_{}/{}/train'.format(epochs, batch_size,
+                                                                                               learning_rate,
+                                                                                               day_time, run))
                 test_writer = tf.summary.FileWriter(
                     '../tmp/facial_keypoint/le_net/{}epochs_{}bs_Adam_lr{}_{}/{}/test'.format(epochs, batch_size,
-                                                                                           learning_rate,
-                                                                                           day_time, run))
-                print("Started Training No. ", run)
+                                                                                              learning_rate,
+                                                                                              day_time, run))
+                print("Start Training No. ", run)
                 sess.run(tf.global_variables_initializer())
                 train_writer.add_graph(sess.graph)
 
@@ -125,43 +124,62 @@ class LeNet():
                     for i in range(total_batches):
                         batch_x, batch_y = np.array(x[i]), np.array(y[i])
                         _, c = sess.run([optimizer, loss], feed_dict={self.x: batch_x, self.y: batch_y})
-                        epoch_loss += c/batch_size
-                        losses.append(c)
+                        epoch_loss += c
 
-                    self.mean_loss = np.mean(np.array(losses)) / batch_size
+                    epoch_loss /= total_batches
 
-                    # Test current weight on test data every 5 epochs
+                    # Test current weights on test data every 5 epochs
                     if epoch % 1 == 0:
                         l, s = sess.run([loss, merged_summary], feed_dict={self.x: x_test, self.y: y_test})
-                        train_writer.add_summary(s, epoch)
+                        test_writer.add_summary(s, epoch)
                         test_losses.append(l)
                     # Writing all information to SummaryWriter
                     if epoch % 1 == 0:
                         batch_x, batch_y = np.array(x[i]), np.array(y[i])
                         s = sess.run(merged_summary, feed_dict={self.x: batch_x, self.y: batch_y})
-                        test_writer.add_summary(s, epoch)
+                        train_writer.add_summary(s, epoch)
 
                     if epoch_loss < best_epoch_loss and save_model:
-                        save_path = saver.save(sess, "../tmp/savepoints/lenet/{}/model.ckpt".format(day_time))
+                        saver.save(sess, "../tmp/savepoints/lenet/{}/model.ckpt".format(day_time))
                         tf.train.write_graph(sess.graph.as_graph_def(), '..',
                                              'tmp/savepoints/lenet/{}/lenet.pbtxt'.format(day_time), as_text=True)
 
                         best_epoch_loss = epoch_loss
 
-                    training_losses.append(epoch_loss / batch_size)
+                    training_losses.append(epoch_loss)
                 end_time = datetime.timedelta(seconds=time.perf_counter() - start_time)
                 print(
                     "Finished run No. {}, \n\t train loss at epoch {}: {} | test loss last epoch: {}, \n\t Best loss {}. Training takes: {}".format(
                         run, epochs, training_losses[-1], test_losses[-1], best_epoch_loss, end_time))
                 # sess.close()
+
                 all_train_losses.append(training_losses)
                 all_test_losses.append(test_losses)
+                """
                 plt.plot(np.arange(len(training_losses)), training_losses)
                 plt.plot(np.arange(len(training_losses)), test_losses)
                 plt.legend(("Train", "test"))
                 plt.yscale('log')
                 plt.show()
+                """
+
+            runs = []
+            for i in range(len(all_test_losses)):
+                plt.plot(np.arange(len(all_train_losses[i])), all_train_losses[i], '-')
+                plt.plot(np.arange(len(all_test_losses[i])), all_test_losses[i], '--')
+                runs.append("Taining {}".format(i))
+                runs.append("Test {}".format(i))
+
+            plt.yscale('log')
+            plt.legend(tuple(runs))
+            savepath = "../tmp/facial_keypoint/le_net/{}epochs_{}bs_Adam_lr{}_{}/{}/one_layer.png".format(
+                self.hl_size,
+                epochs,
+                batch_size,
+                learning_rate,
+                day_time)
+            plt.savefig(savepath, dpi=150)
 
 
 ml_network = LeNet(path_to_data="../data/training.csv")
-ml_network.train(1e-3, 8, 32, save_model=True, repeat_training_n_times=5)
+ml_network.train(1e-3, 125, 32, save_model=True, repeat_training_n_times=1)

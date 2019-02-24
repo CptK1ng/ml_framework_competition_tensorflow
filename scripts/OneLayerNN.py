@@ -48,11 +48,7 @@ class OneLayerNeuralNet():
             optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
 
         hm_epochs = epochs
-
         day_time = str(datetime.datetime.now().time()).split('.')[0]
-        saver = tf.train.Saver()
-        best_epoch_loss = 1000
-
         with tf.Session() as sess:
 
             all_train_losses, all_test_losses = [], []
@@ -89,7 +85,6 @@ class OneLayerNeuralNet():
                     if epoch % 20 == 0:
                         print("Training epoch ", epoch)
 
-                    losses = []
                     epoch_loss = 0
 
                     total_batches = int(len(x_train) / batch_size)
@@ -99,8 +94,9 @@ class OneLayerNeuralNet():
                     for i in range(total_batches):
                         batch_x, batch_y = np.array(x[i]), np.array(y[i])
                         _, c = sess.run([optimizer, loss], feed_dict={self.x: batch_x, self.y: batch_y})
-                        epoch_loss += c / batch_size
-                        losses.append(c)
+                        epoch_loss += c
+
+                    epoch_loss /= total_batches
 
                     if epoch % 1 == 0:
                         l, s = sess.run([loss, merged_summary], feed_dict={self.x: x_test, self.y: y_test})
@@ -115,23 +111,36 @@ class OneLayerNeuralNet():
                     if epoch_loss < best_epoch_loss and save_model:
                         saver.save(sess, "../tmp/savepoints/onelayer/{}/model.ckpt".format(day_time))
                         tf.train.write_graph(sess.graph.as_graph_def(), '..',
-                                             'tmp/savepoints/onelayer/{}/one_layer.pbtxt'.format(day_time), as_text=True)
+                                             'tmp/savepoints/onelayer/{}/one_layer.pbtxt'.format(day_time),
+                                             as_text=True)
 
                         best_epoch_loss = epoch_loss
 
-                    training_losses.append(epoch_loss / batch_size)
+                    training_losses.append(epoch_loss)
                 end_time = datetime.timedelta(seconds=time.perf_counter() - start_time)
                 print(
                     "Finished run No. {}, \n\t train loss at epoch {}: {} | test loss last epoch: {}, \n\t Best loss {}. Training takes: {}".format(
                         run, epochs, training_losses[-1], test_losses[-1], best_epoch_loss, end_time))
-
                 all_train_losses.append(training_losses)
                 all_test_losses.append(test_losses)
-                plt.plot(np.arange(len(training_losses)), training_losses)
-                plt.plot(np.arange(len(training_losses)), test_losses)
-                plt.legend(("Train", "test"))
-                plt.yscale('log')
-                plt.show()
+
+            runs = []
+            for i in range(len(all_test_losses)):
+                plt.plot(np.arange(len(all_train_losses[i])), all_train_losses[i], '-')
+                plt.plot(np.arange(len(all_test_losses[i])), all_test_losses[i], '--')
+                runs.append("Taining {}".format(i))
+                runs.append("Test {}".format(i))
+
+            plt.yscale('log')
+            plt.legend(tuple(runs))
+            savepath = "../tmp/facial_keypoint/one_layer/{}hl/{}epochs_{}bs_Adam_lr{}/{}/one_layer.png".format(
+                self.hl_size,
+                epochs,
+                batch_size,
+                learning_rate,
+                day_time)
+            plt.savefig(savepath,dpi=150 )
+
 
 olnn = OneLayerNeuralNet(path_to_data="../data/training.csv", hl_size=500)
-olnn.train(10e-3, 400, 32, save_model=True, repeat_training_n_times=5)
+olnn.train(1e-3, 20, 32, save_model=True, repeat_training_n_times=2)
