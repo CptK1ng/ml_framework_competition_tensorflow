@@ -1,5 +1,5 @@
 import tensorflow as tf
-from scripts.DataLoader import DataLoader
+from scripts.data_loader import DataLoader
 import numpy as np
 import cv2 as cv
 from PIL import Image

@@ -1,6 +1,6 @@
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
-from scripts.DataLoader import DataLoader
+from scripts.data_loader import DataLoader
 import numpy as np
 import datetime
 
