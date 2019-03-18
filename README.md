@@ -40,6 +40,8 @@ In Tensorflow müssen Netze entweder in Python oder C++ implementiert werden. Hi
 
 [Tensorboard](https://www.tensorflow.org/guide/summaries_and_tensorboard) ist eine zusätzlich Bibliothek die  mit der Installation von Tensorflow mitgeliefert wird. Das Tensorboard kann dabei genutzt werden, um verschiedene Variablen und Trainingsverläufe zu visualisieren.
 
+![Tensorboard Beispiel](https://www.tensorflow.org/images/mnist_tensorboard.png)
+
 Im Folgenden wird anhand eines Code Snippets gezeigt, welche Schritt notwendig sind, um eine Variable in das Tensorboard zu schreiben. Der Code ist der Python Datei *lenet.py* entnommen.
 
 ``` python
