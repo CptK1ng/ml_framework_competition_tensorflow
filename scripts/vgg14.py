@@ -94,7 +94,7 @@ class VGG():
                 train_writer.add_graph(sess.graph)
 
                 merged_summary = tf.summary.merge_all()
-                best_epoch_loss = 1000
+                best_epoch_loss = 100000
                 saver = tf.train.Saver()
 
                 training_losses, test_losses = [], []
@@ -131,7 +131,7 @@ class VGG():
                     if epoch_loss < best_epoch_loss and save_model:
                         saver.save(sess, "../tmp/savepoints/vgg/{}/model.ckpt".format(day_time))
                         tf.train.write_graph(sess.graph.as_graph_def(), '..',
-                                             '../tmp/savepoints/vgg/{}/vgg.pbtxt'.format(time), as_text=True)
+                                             'tmp/savepoints/vgg/{}/vgg.pbtxt'.format(day_time), as_text=True)
                         best_epoch_loss = epoch_loss
 
                     training_losses.append(epoch_loss)
@@ -153,8 +153,7 @@ class VGG():
 
             plt.yscale('log')
             plt.legend(tuple(runs))
-            savepath = "../tmp/facial_keypoint/'../tmp/facial_keypoint/vgg/{}epochs_{}bs_Adam_lr{}_{}/one_layer.png".format(
-                self.hl_size,
+            savepath = "../tmp/facial_keypoint/vgg/{}epochs_{}bs_Adam_lr{}/{}/vgg.png".format(
                 epochs,
                 batch_size,
                 learning_rate,
@@ -163,4 +162,4 @@ class VGG():
 
 
 ml_network = VGG(path_to_data="../data/training.csv")
-ml_network.train(1e-3, 5, 16, save_model=True, repeat_training_n_times=2)
+ml_network.train(1e-3, 500, 32, save_model=True, repeat_training_n_times=2)

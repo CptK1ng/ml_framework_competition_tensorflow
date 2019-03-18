@@ -40,7 +40,7 @@ class OneLayerNeuralNet():
     def train(self, learning_rate, epochs, batch_size, save_model=False, repeat_training_n_times=1):
         prediction = self.one_layer_network_model(self.x)
         with tf.name_scope("loss"):
-            loss = tf.reduce_sum(tf.losses.mean_squared_error(labels=self.y, predictions=prediction))
+            loss = tf.reduce_mean(tf.losses.mean_squared_error(labels=self.y, predictions=prediction))
             tf.summary.scalar("sse", loss)
 
         with tf.name_scope("train"):
@@ -76,7 +76,7 @@ class OneLayerNeuralNet():
                 train_writer.add_graph(sess.graph)
 
                 merged_summary = tf.summary.merge_all()
-                best_epoch_loss = 1000
+                best_epoch_loss = 100000000
                 saver = tf.train.Saver()
 
                 training_losses, test_losses = [], []
@@ -143,4 +143,4 @@ class OneLayerNeuralNet():
 
 
 olnn = OneLayerNeuralNet(path_to_data="../data/training.csv", hl_size=500)
-olnn.train(1e-3, 20, 32, save_model=True, repeat_training_n_times=2)
+olnn.train(1e-3, 250, 32, save_model=True, repeat_training_n_times=5)

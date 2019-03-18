@@ -74,11 +74,12 @@ class LeNet():
 
         with tf.name_scope("loss"):
             # == loss = tf.reduce_sum(tf.pow(prediction - Y,2))/(n_instances)
-            loss = tf.reduce_sum(tf.losses.mean_squared_error(labels=self.y, predictions=prediction))
+            loss = tf.reduce_mean(tf.losses.mean_squared_error(labels=self.y, predictions=prediction))
             tf.summary.scalar("sse", loss)
 
         with tf.name_scope("train"):
             optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
+            #optimizer = tf.train.MomentumOptimizer(learning_rate=learning_rate, momentum=0.9, use_nesterov=True).minimize(loss)
 
         day_time = str(datetime.datetime.now().time()).split('.')[0]
 
@@ -111,7 +112,7 @@ class LeNet():
                 training_losses, test_losses = [], []
                 start_time = time.perf_counter()
                 for epoch in range(epochs):
-                    if epoch % 20 == 0:
+                    if epoch % 5 == 0:
                         print("Training epoch ", epoch)
 
                     losses = []
@@ -172,8 +173,7 @@ class LeNet():
 
             plt.yscale('log')
             plt.legend(tuple(runs))
-            savepath = "../tmp/facial_keypoint/le_net/{}epochs_{}bs_Adam_lr{}_{}/{}/one_layer.png".format(
-                self.hl_size,
+            savepath = "../tmp/facial_keypoint/le_net/{}epochs_{}bs_Adam_lr{}/{}/one_layer.png".format(
                 epochs,
                 batch_size,
                 learning_rate,
@@ -182,4 +182,4 @@ class LeNet():
 
 
 ml_network = LeNet(path_to_data="../data/training.csv")
-ml_network.train(1e-3, 125, 32, save_model=True, repeat_training_n_times=1)
+ml_network.train(1e-3, 250, 32, save_model=True, repeat_training_n_times=5)
