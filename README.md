@@ -84,7 +84,7 @@ Weitee im Rahmen der Projektarbeit verwendeten Pakete können der im Projekt ent
 
 ## Netzarchitekturen
 
-| ﻿Arch_Baseline |        |         |   | Arch_LeNet |                                  |          |   | Arch_VGG |           |           |   |   |   |   |
+| Arch_Baseline |        |         |   | Arch_LeNet |                                  |          |   | Arch_VGG |           |           |   |   |   |   |
 |---------------|--------|---------|---|------------|----------------------------------|----------|---|----------|-----------|-----------|---|---|---|---|
 |               |        |         |   |            | conv2d: 3x3, pool: 2x2, stride 1 |          |   |          |           |           |   |   |   |   |
 | Layer         | Name   | Size    |   | Layer      | Name                             | Size     |   | Layer    | Name      | Size      |   |   |   |   |
@@ -112,12 +112,12 @@ Die Baseline besteht aus einer Eingangsschicht, gefolgt von einer mit 500 Neuron
 ### LeNet-Architektur
 Die LeNet Architektur besteht aus 5 mal aufeinanderfolgenden Faltungs- und Max Pooling- Schichten. Anschließend folgen 5 *Dichte Schichten* (Dense Layer) bestehend auf 500 Neuronen. Die Ausgabeschicht liefert auch hier 15 x,y Punkte (30 Werte) stellvertretend für die Keypoints.
 
-![LeNet-Architektur](images/lenet_graph.png)
+![LeNet-Architektur](https://github.com/CptK1ng/Projektarbeit_WS18/blob/master/images/lenet_graph.png)
 
 ### VGG-Architektur
 Bei der VGG-Architektur wiederholt sich das Pattern von 2 aufeinanderfolgenden Faltungsschichten und einer Max Pooling-Schicht drei mal. Anschließend folgen 2 "Fully Connected" Schichten mit einer [Dropout-Eigenschaft](https://de.wikipedia.org/wiki/Dropout_(k%C3%BCnstliches_neuronales_Netz)). Das bedeutet, ein Teil der Ergebnisse aus den vorherigen Werte wird verworfen.
 
-![VGG-Architektur](images/vgg_graph.png)
+![VGG-Architektur](https://github.com/CptK1ng/Projektarbeit_WS18/blob/master/images/vgg_graph.png)
 
 Die Dopout Schichten wirken regularisierend auf die Trainingsprozedur, wodurch das Netz besser verallgemeinern kann.
 
@@ -211,7 +211,7 @@ Bei Verwendung einer einzelnen Dropout Schicht konnte festgestellt werden, dass 
 ### Unterschiedliche Loss Funktionen als Standard
 Die Projektteilnehmer hatten sich auf die Summe der Quadratfehler als Kostenfunktion geeinigt. Im Caffe Framework heißt diese "Euclid" in [Tensorflow](https://www.tensorflow.org/api_docs/python/tf/losses/mean_squared_error) kann diese mithilfe von `tf.reduce_mean(tf.losses.mean_squared_error())` errechnet werden.
 Zu spät wurde dann allerdings festgestellt, dass diese Implementierungen nicht identisch sind. Bei Caffe wird stattdessen nach dieser Formel das Loss berechnet: 
-![SSE-Caffe](images/formel.png)
+![SSE-Caffe](https://github.com/CptK1ng/Projektarbeit_WS18/blob/master/images/formel.PNG)
 
 ## Fazit
 
