@@ -38,7 +38,7 @@ In Tensorflow müssen Netze entweder in Python oder C++ implementiert werden. Hi
 
 ## Tensorboard
 
-[Tensorboard](https://www.tensorflow.org/guide/summaries_and_tensorboard) ist eine zusätzlich Bibliothek die  mit der Installation von Tensorflow mitgeliefert wird. Das Tensorboard kann dabei genutzt werden, um verschiedene Variablen und Trainingsverläufe zu visualisieren.
+[Tensorboard](https://www.tensorflow.org/guide/summaries_and_tensorboard) ist eine zusätzlich Bibliothek die  mit der Installation von Tensorflow mitgeliefert wird. Das Tensorboard kann dazu genutzt werden, um verschiedene Variablen und Trainingsverläufe zu visualisieren.
 
 ![Tensorboard Beispiel](https://www.tensorflow.org/images/mnist_tensorboard.png)
 
