@@ -162,4 +162,4 @@ class VGG():
 
 
 ml_network = VGG(path_to_data="../data/training.csv")
-ml_network.train(1e-3, 500, 32, save_model=True, repeat_training_n_times=2)
+ml_network.train(1e-3, 250, 32, save_model=True, repeat_training_n_times=4)
