@@ -32,12 +32,26 @@ def load_graph(frozen_graph_filename):
 
 
 if __name__ == '__main__':
-    # We use our "load_graph" function
-    graph = load_graph("/home/lukas/Projects/Projektarbeit_WS18/tmp/savepoints/lenet/10:34:13/frozen_model.pb")
+    # Baseline
+    # graph = load_graph("../weights/baseline/frozen_model.pb")
 
-    # access the input and output nodes
+    # Lenet
+    graph = load_graph("../weights/lenet/frozen_model.pb")
+
+
+    # Baseline and Lenet
     x = graph.get_tensor_by_name('prefix/x:0')
     y = graph.get_tensor_by_name('prefix/output/add:0')
+
+    '''
+    #vgg
+    graph = load_graph("../weights/vgg/frozen_model.pb")
+
+    x = graph.get_tensor_by_name('prefix/x:0')
+    y = graph.get_tensor_by_name('prefix/fcl2/dropout/mul:0')
+    '''
+
+
 
     # We launch a Session
     dl = DataLoader(path_to_data="../data/training.csv")
