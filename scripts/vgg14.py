@@ -1,8 +1,9 @@
+import datetime
+import numpy as np
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
+
 from scripts.data_loader import DataLoader
-import numpy as np
-import datetime
 
 
 class VGG():
@@ -105,7 +106,6 @@ class VGG():
                     epoch_loss += c
                     losses.append(c)
 
-
                 if epoch % 5 == 0:
                     batch_x, batch_y = np.array(x[i]), np.array(y[i])
                     s = sess.run(summ, feed_dict={self.x: batch_x, self.y: batch_y})
@@ -114,9 +114,6 @@ class VGG():
                 if epoch_loss < best_epoch_loss and save_model:
                     save_path = saver.save(sess,
                                            "../tmp/savepoints/vgg/{}/model.ckpt".format(time))
-                    #tf.train.write_graph(sess.graph.as_graph_def(), '..',
-                         #                '../tmp/savepoints/vgg/{}/vgg.pbtxt'.format(time), as_text=True)
-
 
                     best_epoch_loss = epoch_loss
                     print("Model saved in path: %s" % save_path)
